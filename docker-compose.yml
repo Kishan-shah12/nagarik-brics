@@ -1,0 +1,158 @@
+version: "3.9"
+
+# ============================================================================
+# NagarikBRICS — Docker Compose Topology (MVP)
+# ============================================================================
+# Three decoupled microservices communicating over an internal bridge network.
+# All services run as non-root users for security compliance.
+#
+# Startup order: python-ai-core → java-ingestion → frontend-ui
+# ============================================================================
+
+services:
+
+  # --------------------------------------------------------------------------
+  # SERVICE 1: Java Ingestion API (Spring Boot)
+  # --------------------------------------------------------------------------
+  # Responsibilities:
+  #   - Accept citizen feedback via REST API
+  #   - Validate payloads against CitizenFeedbackRequest schema
+  #   - Forward validated feedback to python-ai-core for NLP processing
+  #   - Store raw + processed feedback records
+  # --------------------------------------------------------------------------
+  java-ingestion:
+    build:
+      context: ./services/java-ingestion
+      dockerfile: Dockerfile
+    container_name: nagarik-java-ingestion
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - AI_CORE_BASE_URL=http://python-ai-core:8080
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - TZ=UTC
+    networks:
+      - nagarik-network
+    depends_on:
+      python-ai-core:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    # SECURITY: Non-root execution enforced in Dockerfile
+    # The Dockerfile MUST include:
+    #   RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+    #   USER appuser
+
+  # --------------------------------------------------------------------------
+  # SERVICE 2: Python AI Core (FastAPI + Gemini)
+  # --------------------------------------------------------------------------
+  # Responsibilities:
+  #   - Gemini NLP pipeline (translate → classify → sentiment → urgency)
+  #   - Infrastructure index correlation engine
+  #   - Project recommendation generation
+  #   - Serve processed data to frontend via REST endpoints
+  # --------------------------------------------------------------------------
+  python-ai-core:
+    build:
+      context: ./services/python-ai-core
+      dockerfile: Dockerfile
+    container_name: nagarik-python-ai-core
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?GEMINI_API_KEY must be set}
+      - GEMINI_MODEL=gemini-2.5-flash
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+      - TZ=UTC
+    networks:
+      - nagarik-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    # SECURITY: Non-root execution enforced in Dockerfile
+    # The Dockerfile MUST include:
+    #   RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+    #   USER appuser
+
+  # --------------------------------------------------------------------------
+  # SERVICE 3: Frontend UI (Nginx + Vanilla JS/CSS)
+  # --------------------------------------------------------------------------
+  # Responsibilities:
+  #   - Serve static policymaker dashboard (HTML/CSS/JS)
+  #   - Reverse-proxy API calls to backend services
+  #   - Render interactive heatmap (Leaflet.js)
+  #   - Display recommendation cards and filters
+  # --------------------------------------------------------------------------
+  frontend-ui:
+    build:
+      context: ./services/frontend-ui
+      dockerfile: Dockerfile
+    container_name: nagarik-frontend-ui
+    ports:
+      - "80:8080"
+    environment:
+      - JAVA_API_URL=http://java-ingestion:8081
+      - PYTHON_API_URL=http://python-ai-core:8080
+    networks:
+      - nagarik-network
+    depends_on:
+      java-ingestion:
+        condition: service_started
+      python-ai-core:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    # SECURITY: Nginx runs as non-root via custom config
+    # The Dockerfile MUST include:
+    #   RUN chown -R nginx:nginx /usr/share/nginx/html
+    #   USER nginx
+    # nginx.conf MUST NOT bind to ports < 1024 inside the container
+    # unless using setcap or mapping via Docker port binding.
+
+# ============================================================================
+# NETWORK
+# ============================================================================
+networks:
+  nagarik-network:
+    driver: bridge
+    name: nagarik-brics-network
+
+# ============================================================================
+# DIRECTORY STRUCTURE (Expected)
+# ============================================================================
+# Build with Ai/
+# ├── docker-compose.yml          ← this file
+# ├── .env                        ← GEMINI_API_KEY=your-key-here
+# ├── services/
+# │   ├── java-ingestion/
+# │   │   ├── Dockerfile
+# │   │   ├── pom.xml
+# │   │   └── src/
+# │   ├── python-ai-core/
+# │   │   ├── Dockerfile
+# │   │   ├── requirements.txt
+# │   │   └── app/
+# │   └── frontend-ui/
+# │       ├── Dockerfile
+# │       ├── nginx.conf
+# │       ├── index.html
+# │       ├── index.css
+# │       └── index.js
+# ============================================================================
