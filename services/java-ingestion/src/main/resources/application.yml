@@ -1,0 +1,55 @@
+# ==============================================================================
+# NagarikBRICS — Java Ingestion Service Configuration
+# ==============================================================================
+# Profile: default (overridden by SPRING_PROFILES_ACTIVE=docker in container)
+# ==============================================================================
+
+server:
+  port: ${SERVER_PORT:8081}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+spring:
+  application:
+    name: nagarik-java-ingestion
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: false
+    deserialization:
+      fail-on-unknown-properties: true
+    default-property-inclusion: non_null
+
+# Actuator health endpoint for Docker health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+# Custom application properties
+app:
+  ai-core:
+    base-url: ${AI_CORE_BASE_URL:http://localhost:8080}
+    process-endpoint: /internal/process
+    timeout-ms: ${AI_CORE_TIMEOUT_MS:30000}
+  validation:
+    min-text-length: 10
+    max-text-length: 5000
+    supported-languages: hi,pt,en,ru,zh,zu,af,ta,bn,mr,te,ur,kn,gu,ml
+    supported-countries: BR,RU,IN,CN,ZA
+    rate-limit-per-minute: 100
+
+info:
+  app:
+    name: NagarikBRICS Ingestion Service
+    version: 1.0.0-mvp
+    description: Citizen feedback data ingestion gateway
