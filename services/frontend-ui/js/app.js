@@ -89,7 +89,7 @@ form.addEventListener('submit', async (e) => {
             // Trigger background analysis refresh slightly after ingestion
             setTimeout(refreshAnalysis, 1000);
         } else {
-            logStatus(`Error: ${data.error ? data.error.message : 'Unknown API error'}`, true);
+            logStatus(`API Error: ${JSON.stringify(data)}`, true);
         }
     } catch (err) {
         logStatus(`Network Error: ${err.message}`, true);
