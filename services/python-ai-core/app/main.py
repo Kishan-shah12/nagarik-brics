@@ -297,8 +297,8 @@ async def internal_process(
     summary="Analyze feedback hotspots and generate recommendations",
 )
 async def analyze_hotspots(
+    request: Request,
     body: AnalyzeHotspotsRequest | None = None,
-    request: Request = None,
 ) -> dict:
     """Analyze stored feedback to identify geographic and thematic hotspots.
 
