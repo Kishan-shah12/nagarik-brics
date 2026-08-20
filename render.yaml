@@ -1,0 +1,30 @@
+services:
+  # 1. Python AI Core
+  - type: web
+    name: nagarik-python-ai-core
+    env: docker
+    dockerContext: ./services/python-ai-core
+    dockerfilePath: ./services/python-ai-core/Dockerfile
+    region: ohio
+    plan: free
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PORT
+        value: 8080
+      - key: PYTHONUNBUFFERED
+        value: 1
+
+  # 2. Java Ingestion Service
+  - type: web
+    name: nagarik-java-ingestion
+    env: docker
+    dockerContext: ./services/java-ingestion
+    dockerfilePath: ./services/java-ingestion/Dockerfile
+    region: ohio
+    plan: free
+    envVars:
+      - key: SERVER_PORT
+        value: 8081
+      - key: AI_CORE_BASE_URL
+        value: http://nagarik-python-ai-core:8080
