@@ -66,17 +66,7 @@ docker compose up --build -d
 # Navigate to http://localhost in your browser
 ```
 
-### 2. Vercel Serverless Deployment
-For zero-config deployment, the repository is configured natively for Vercel.
-
-1. Connect the repository to your Vercel account.
-2. In the Vercel Project Settings, add the Environment Variable:
-   - `GEMINI_API_KEY` = `your_google_gemini_key_here`
-3. Vercel automatically uses `vercel.json` to:
-   - Route `/api/(.*)` to the secure Python serverless endpoint (`api/index.py`).
-   - Serve static assets and UI directly from the Edge network.
-
-### 3. Running the Test Suite
+### 2. Running the Test Suite
 To manually execute the security and API contract test suite:
 
 ```bash
