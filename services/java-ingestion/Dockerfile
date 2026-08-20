@@ -51,7 +51,7 @@ USER appuser
 EXPOSE 8081
 
 # JVM tuning for container environment
-ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+ENV JAVA_OPTS="-Xmx256m -Xms128m -XX:+UseContainerSupport -XX:MaxRAMPercentage=50.0"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
