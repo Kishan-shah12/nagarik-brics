@@ -84,9 +84,11 @@ export const safeSetHTML = (element, html) => {
 /**
  * Application Constants (Frozen to prevent tampering)
  */
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 export const CONFIG = deepFreeze({
-    JAVA_API_URL: '/api/v1/feedback',
-    PYTHON_API_URL: '/api/v1/ai',
+    JAVA_API_URL: isLocal ? '/api/v1/feedback' : 'https://YOUR_JAVA_RENDER_URL.onrender.com/api/v1/feedback',
+    PYTHON_API_URL: isLocal ? '/api/v1/ai' : 'https://YOUR_PYTHON_RENDER_URL.onrender.com/api/v1/ai',
     MAX_TEXT_LENGTH: 5000,
     MIN_TEXT_LENGTH: 10
 });
