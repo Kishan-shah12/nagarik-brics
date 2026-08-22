@@ -280,13 +280,10 @@ async def internal_process(
         result = await gemini_svc.process_feedback(payload)
         return result
     except Exception as exc:
-        logger.error("Internal process failed: %s", str(exc))
+        logger.error(f"Feedback processing failed: {exc}")
         raise HTTPException(
             status_code=500,
-            detail={
-                "code": "PROCESSING_FAILED",
-                "message": "Gemini NLP processing failed.",
-            },
+            detail={"code": "PROCESSING_FAILED", "message": f"Error: {str(exc)}"}
         )
 
 
