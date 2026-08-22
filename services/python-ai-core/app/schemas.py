@@ -557,6 +557,7 @@ class HealthResponse(BaseModel):
         status: Service health status.
         version: Application version string.
         gemini_api: Gemini API connection status.
+        use_supabase: Whether Supabase storage is active.
         feedback_count: Number of stored feedback records.
         recommendation_count: Number of generated recommendations.
         uptime_seconds: Service uptime in seconds.
@@ -565,6 +566,7 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     gemini_api: str
+    use_supabase: bool = Field(default=False)
     feedback_count: int = Field(..., ge=0)
     recommendation_count: int = Field(..., ge=0)
     uptime_seconds: int = Field(..., ge=0)

@@ -225,14 +225,15 @@ async def health_check(request: Request) -> HealthResponse:
     feedback_count = len(gemini_svc.feedback_store) if not gemini_svc.use_supabase else 0
     recommendation_count = len(gemini_svc.recommendation_store) if not gemini_svc.use_supabase else 0
 
-    return HealthResponse(
-        status="healthy",
-        version="1.0.0-mvp",
-        gemini_api=gemini_status,
-        feedback_count=feedback_count,
-        recommendation_count=recommendation_count,
-        uptime_seconds=uptime,
-    )
+    return {
+        "status": "healthy",
+        "version": "1.0.0-mvp",
+        "gemini_api": gemini_status,
+        "use_supabase": gemini_svc.use_supabase,
+        "feedback_count": feedback_count,
+        "recommendation_count": recommendation_count,
+        "uptime_seconds": int(time.time() - start_time),
+    }
 
 
 # ==========================================================================
