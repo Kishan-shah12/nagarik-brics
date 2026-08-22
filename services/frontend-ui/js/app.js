@@ -227,7 +227,8 @@ const refreshAnalysis = async () => {
         const recData = await recRes.json();
 
         if (recRes.ok && recData.data) {
-            safeSetText(kpiRecs, recData.data.total_count.toString());
+            const totalRecs = recData.data.pagination ? recData.data.pagination.total_items : (recData.data.total_count || 0);
+            safeSetText(kpiRecs, totalRecs.toString());
             renderRecommendations(recData.data.recommendations || []);
         } else {
             logStatus(`Recommendations failed.`, true);
