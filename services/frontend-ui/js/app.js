@@ -284,7 +284,7 @@ chatForm.addEventListener('submit', async (e) => {
     const language = activeLangBtn ? activeLangBtn.textContent.toLowerCase() : 'en';
 
     try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch(`${CONFIG.PYTHON_API_URL}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, language })

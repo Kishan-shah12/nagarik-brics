@@ -861,3 +861,17 @@ Return ONLY this JSON (no markdown, no explanation):
             status=RecommendationStatus.PUBLISHED,
             created_at=datetime.now(timezone.utc),
         )
+
+    async def chat(self, prompt: str, language: str) -> str:
+        """Handle AI chat widget requests."""
+        logger.info(f"Processing chat prompt in {language}")
+        try:
+            sys_prompt = f"You are a helpful civic AI assistant for the NagarikBRICS platform. Reply in {language}."
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=f"{sys_prompt}\n\nUser: {prompt}",
+            )
+            return response.text
+        except Exception as exc:
+            logger.error(f"Chat failed: {exc}")
+            raise
