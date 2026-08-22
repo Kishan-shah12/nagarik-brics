@@ -27,4 +27,4 @@ services:
       - key: SERVER_PORT
         value: 8081
       - key: AI_CORE_BASE_URL
-        value: http://nagarik-python-ai-core:8080
+        value: https://nagarik-python-ai-core.onrender.com
