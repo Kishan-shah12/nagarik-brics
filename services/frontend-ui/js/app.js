@@ -52,7 +52,7 @@ form.addEventListener('submit', async (e) => {
     
     // Grab the active language from the toggles
     const activeLangBtn = document.querySelector('.lang-btn.active');
-    const language = activeLangBtn ? activeLangBtn.textContent : 'EN';
+    const language = activeLangBtn ? activeLangBtn.textContent.toLowerCase() : 'en';
     
     const country = 'IN'; // Hardcoded to India for this demo
 
@@ -272,7 +272,7 @@ chatForm.addEventListener('submit', async (e) => {
     chatInput.value = '';
 
     const activeLangBtn = document.querySelector('.lang-btn.active');
-    const language = activeLangBtn ? activeLangBtn.textContent : 'EN';
+    const language = activeLangBtn ? activeLangBtn.textContent.toLowerCase() : 'en';
 
     try {
         const response = await fetch('/api/chat', {
