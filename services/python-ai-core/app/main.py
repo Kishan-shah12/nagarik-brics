@@ -488,3 +488,24 @@ async def ai_chat(
             status_code=500,
             detail={"code": "CHAT_FAILED", "message": str(exc)}
         )
+
+@app.get("/api/v1/ai/feedback/recent", tags=["AI Analysis"], summary="Get recent feedback")
+async def get_recent_feedback(request: Request):
+    gemini_svc: GeminiService = request.app.state.gemini_service
+    if not gemini_svc.use_supabase:
+        return {"data": []}
+    try:
+        resp = gemini_svc.supabase.table("citizen_feedback").select("*").order("created_at", desc=True).limit(5).execute()
+        # format data for frontend
+        data = []
+        for r in resp.data:
+            data.append({
+                "source": "App",
+                "message": r.get("raw_text", ""),
+                "tag": r.get("category", ""),
+                "urgency": r.get("urgency_score", 1)
+            })
+        return {"data": data}
+    except Exception as exc:
+        logger.error(f"Failed to fetch recent feedback: {exc}")
+        return {"data": []}
