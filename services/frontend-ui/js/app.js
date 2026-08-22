@@ -208,7 +208,7 @@ const refreshAnalysis = async () => {
     refreshBtn.disabled = true;
 
     try {
-        const hsRes = await fetch(`${CONFIG.PYTHON_API_URL}/api/v1/ai/analyze-hotspots`, {
+        const hsRes = await fetch(`${CONFIG.PYTHON_API_URL}/analyze-hotspots`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ filters: { country_code: country } })
@@ -223,7 +223,7 @@ const refreshAnalysis = async () => {
             logStatus(`Hotspot Analysis failed.`, true);
         }
 
-        const recRes = await fetch(`${CONFIG.PYTHON_API_URL}/api/v1/ai/recommendations?country_code=${country}`);
+        const recRes = await fetch(`${CONFIG.PYTHON_API_URL}/recommendations?country_code=${country}`);
         const recData = await recRes.json();
 
         if (recRes.ok && recData.data) {
