@@ -592,3 +592,16 @@ class HealthResponse(BaseModel):
     feedback_count: int = Field(..., ge=0)
     recommendation_count: int = Field(..., ge=0)
     uptime_seconds: int = Field(..., ge=0)
+
+
+class FeedbackRecord(BaseModel):
+    id: str = Field(alias="feedback_id")
+    source: str = "Simulated"
+    message: str = Field(alias="raw_text")
+    tag: str = Field(alias="category")
+    urgency: int = Field(alias="urgency_score")
+    
+    model_config = {"populate_by_name": True, "extra": "ignore"}
+
+class RecentFeedbackResponse(BaseModel):
+    data: list[FeedbackRecord]

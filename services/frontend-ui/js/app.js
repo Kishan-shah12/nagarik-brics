@@ -180,22 +180,25 @@ const renderRecommendations = (recs) => {
 };
 
 const fetchAndRenderFeedback = async () => {
-    // For MVP, we will simulate the Recent Feedback table with mock data or just leave it empty 
-    // unless we implement a GET endpoint for raw feedback.
-    feedbackTableBody.innerHTML = `
-        <tr>
-            <td>WhatsApp</td>
-            <td>Better Roads needed in our village immediately.</td>
-            <td><span class="tag">Roads</span></td>
-            <td><span class="urgency-indicator high">!</span></td>
-        </tr>
-        <tr>
-            <td>SMS</td>
-            <td>Water supply is highly irregular.</td>
-            <td><span class="tag">Water</span></td>
-            <td><span class="urgency-indicator medium">!</span></td>
-        </tr>
-    `;
+    try {
+        const res = await fetch(`${CONFIG.PYTHON_API_URL}/feedback/recent`);
+        const result = await res.json();
+        
+        if (res.ok && result.data && result.data.length > 0) {
+            feedbackTableBody.innerHTML = result.data.map(item => `
+                <tr>
+                    <td>${item.source || 'App'}</td>
+                    <td>${sanitizeHTML(item.message)}</td>
+                    <td><span class="tag">${sanitizeHTML(item.tag)}</span></td>
+                    <td><span class="urgency-indicator ${item.urgency >= 7 ? 'high' : (item.urgency >= 4 ? 'medium' : 'low')}">!</span></td>
+                </tr>
+            `).join('');
+        } else {
+            feedbackTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#999">No recent feedback</td></tr>`;
+        }
+    } catch (err) {
+        feedbackTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--color-critical)">Failed to load feedback</td></tr>`;
+    }
 };
 
 // ============================================================================
@@ -313,5 +316,21 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
         });
+    });
+});
+
+
+// ============================================================================
+// Sidebar Navigation (UI Placeholder)
+// ============================================================================
+document.querySelectorAll(".sidebar .nav-item").forEach(item => {
+    item.addEventListener("click", (e) => {
+        e.preventDefault();
+        document.querySelectorAll(".sidebar .nav-item").forEach(nav => nav.classList.remove("active"));
+        item.classList.add("active");
+        
+        if (!item.textContent.includes("Dashboard")) {
+            alert(item.textContent.trim() + " is under development and will be available in the next release!");
+        }
     });
 });
