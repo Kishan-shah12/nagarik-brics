@@ -20,7 +20,7 @@ Example:
         uvicorn app.main:app --port 8080
 """
 
-from pydantic import Field
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -63,11 +63,13 @@ class Settings(BaseSettings):
     # ---- Supabase Configuration ----
     supabase_url: str = Field(
         default="",
+        validation_alias=AliasChoices("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
         description="Supabase project URL.",
     )
     
     supabase_key: str = Field(
         default="",
+        validation_alias=AliasChoices("SUPABASE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
         description="Supabase anonymous/publishable key.",
     )
 
