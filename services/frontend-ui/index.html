@@ -3,143 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NagarikBRICS Dashboard</title>
+    <title>Civic Connect Dashboard</title>
     
-    <!-- STRICT SECURITY HEADERS -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.onrender.com; object-src 'none'; base-uri 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.onrender.com https://*.supabase.co; object-src 'none'; base-uri 'self';">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="styles/styles.css">
 </head>
 <body>
 
-    <header class="top-nav" role="banner">
-        <div class="logo">
-            <span class="logo-text">NagarikBRICS</span>
-            <span class="logo-badge" aria-label="Digital Public Good">DPG</span>
+    <!-- TOP NAV -->
+    <header class="top-bar">
+        <div class="brand">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--color-brand-blue)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            CIVIC CONNECT: <span>Citizen Feedback & Infrastructure Intelligence Dashboard</span>
         </div>
-        <div class="nav-controls">
-            <label for="country-selector" class="sr-only">Select Country</label>
-            <select id="country-selector" class="select-dropdown" aria-label="Country Filter">
-                <option value="">All BRICS Nations</option>
-                <option value="BR">Brazil</option>
-                <option value="RU">Russia</option>
-                <option value="IN" selected>India</option>
-                <option value="CN">China</option>
-                <option value="ZA">South Africa</option>
-            </select>
-            <label for="language-selector" class="sr-only">Select Language</label>
-            <select id="language-selector" class="select-dropdown" aria-label="Language Toggle">
-                <option value="en">English (EN)</option>
-                <option value="hi" selected>Hindi (HI)</option>
-                <option value="pt">Portuguese (PT)</option>
-                <option value="ru">Russian (RU)</option>
-                <option value="zh">Chinese (ZH)</option>
-            </select>
+        <div class="top-bar-right">
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Government+Official&background=2563EB&color=fff" alt="User">
+                <div class="user-info">
+                    <span class="user-name">Government Official</span>
+                    <span class="user-role">Ministry of Urban Development</span>
+                </div>
+            </div>
+            <div class="lang-toggles">
+                <button class="lang-btn active">EN</button>
+                <button class="lang-btn">PT</button>
+                <button class="lang-btn">RU</button>
+                <button class="lang-btn">ZH</button>
+                <button class="lang-btn">HI</button>
+            </div>
         </div>
     </header>
 
-    <main class="dashboard-grid" role="main">
+    <div class="app-container">
         
-        <!-- SIDEBAR: CITIZEN SIMULATOR -->
-        <aside class="panel panel-left" role="complementary" aria-labelledby="simulator-title">
-            <h2 id="simulator-title" class="section-title">Citizen Simulator</h2>
-            <form id="feedback-form" class="sim-form" novalidate aria-live="polite">
-                
-                <div class="form-group">
-                    <label for="feedback-text">Multilingual Feedback</label>
-                    <textarea id="feedback-text" name="raw_text" rows="4" aria-required="true" placeholder="e.g. हमारे गाँव में पिछले दो महीने से पानी नहीं आ रहा है।"></textarea>
-                    <span id="text-error" class="error-msg" role="alert"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="feedback-lat">Latitude</label>
-                    <input type="number" id="feedback-lat" name="lat" step="any" aria-required="true" value="26.8467">
-                </div>
-
-                <div class="form-group">
-                    <label for="feedback-lng">Longitude</label>
-                    <input type="number" id="feedback-lng" name="lng" step="any" aria-required="true" value="80.9462">
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="submit-feedback-btn">
-                    Submit to Java Ingestion
-                </button>
-            </form>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <a href="#" class="nav-item active">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                Dashboard
+            </a>
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M21 2H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h4l3 3 3-3h6c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 16H3V4h18v14z"/></svg>
+                Feedback & Needs
+            </a>
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+                Infrastructure Projects
+            </a>
+            <a href="#" class="nav-item">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                Demographics & Analytics
+            </a>
             
-            <div id="sim-status" class="status-panel" aria-live="assertive" role="region" aria-label="Submission Status">
-                <!-- Status messages injected here -->
+            <div class="sidebar-footer">
+                <p><strong>Citizen Simulator</strong></p>
+                <form id="feedback-form" class="sim-form" style="margin-top: 10px;">
+                    <textarea id="feedback-text" rows="2" placeholder="Simulate feedback..."></textarea>
+                    <div style="display:flex; gap:0.5rem">
+                        <input type="number" id="feedback-lat" value="26.8467" style="width:50%" placeholder="Lat">
+                        <input type="number" id="feedback-lng" value="80.9462" style="width:50%" placeholder="Lng">
+                    </div>
+                    <button type="submit" class="btn-primary" id="submit-feedback-btn">Submit</button>
+                </form>
+                <div id="sim-status" style="margin-top:10px;"></div>
             </div>
         </aside>
 
-        <!-- CENTER: HEATMAP CANVAS -->
-        <section class="panel panel-center" aria-labelledby="heatmap-title">
-            <div class="panel-header">
-                <h2 id="heatmap-title" class="section-title">Policymaker Intelligence Canvas</h2>
-                <button id="refresh-analysis-btn" class="btn btn-secondary">Refresh Analysis</button>
-            </div>
+        <!-- MAIN DASHBOARD -->
+        <main class="dashboard-content">
             
-            <div class="kpi-strip">
+            <!-- KPI ROW -->
+            <div class="kpi-row">
                 <div class="kpi-card">
-                    <div class="kpi-card__label">Total Feedback</div>
-                    <div class="kpi-card__value" id="kpi-total">0</div>
+                    <div class="kpi-title">Total Citizen Requests</div>
+                    <div class="kpi-value" id="kpi-total">0</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-card__label">Critical Hotspots</div>
-                    <div class="kpi-card__value" id="kpi-critical">0</div>
+                    <div class="kpi-title">Urgent High-Priority Issues</div>
+                    <div class="kpi-value urgent" id="kpi-critical">0</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-card__label">New Recommendations</div>
-                    <div class="kpi-card__value" id="kpi-recs">0</div>
+                    <div class="kpi-title">Projects Aligned To Feedback</div>
+                    <div class="kpi-value aligned" id="kpi-recs">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Global Sentiment</div>
+                    <div style="display:flex; justify-content:center; padding-top: 10px;">
+                        <svg width="60" height="60" viewBox="0 0 32 32" style="border-radius:50%; background:conic-gradient(var(--color-low) 0% 60%, var(--color-medium) 60% 85%, var(--color-critical) 85% 100%)"></svg>
+                    </div>
                 </div>
             </div>
 
-            <!-- Pure HTML5/SVG Canvas for heatmap (Zero external map libraries) -->
-            <div class="canvas-container" id="heatmap-container" role="img" aria-label="Interactive hotspot map">
-                <svg id="heatmap-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
-                    <!-- Background Grid -->
-                    <rect width="800" height="500" fill="var(--color-bg-primary)"/>
-                    <g id="heatmap-grid" stroke="var(--color-border-primary)" stroke-width="1"></g>
-                    <!-- Hotspot clusters injected here -->
-                    <g id="hotspot-layer"></g>
-                </svg>
+            <!-- MIDDLE ROW (MAP) -->
+            <div class="middle-row">
+                <div class="panel">
+                    <div class="panel-header">Top Infrastructure Needs</div>
+                    <div class="panel-content" style="display:flex; flex-direction:column; justify-content:flex-end; gap:0.5rem; border-bottom:1px solid #eee; padding-bottom:10px;">
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+                            <span class="tag">Better Roads</span>
+                            <span class="tag">Stable Power</span>
+                            <span class="tag">Water Access</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>AI-Generated Demographic Insights Overlay</span>
+                        <button id="refresh-analysis-btn" class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Refresh Analysis</button>
+                    </div>
+                    <div class="panel-content map-container" id="heatmap-container">
+                        <svg id="heatmap-svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                            <!-- Background map outline will go here -->
+                            <rect width="800" height="400" fill="#E8F4F8"/>
+                            <g id="heatmap-grid" stroke="var(--color-border-light)" stroke-width="1"></g>
+                            <g id="hotspot-layer"></g>
+                        </svg>
+                    </div>
+                </div>
             </div>
-        </section>
 
-        <!-- RIGHT: AI RECOMMENDATIONS -->
-        <aside class="panel panel-right" role="region" aria-labelledby="recs-title">
-            <h2 id="recs-title" class="section-title">AI Recommendation Feed</h2>
-            <div id="recommendations-feed" class="recs-feed" aria-live="polite">
-                <!-- ProjectRecommendation cards injected here -->
-                <div class="empty-state">No recommendations generated yet.</div>
+            <!-- BOTTOM ROW -->
+            <div class="bottom-row">
+                <div class="panel">
+                    <div class="panel-header">Recent Citizen Feedback Feed</div>
+                    <div class="panel-content" style="padding:0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Message</th>
+                                    <th>Tag</th>
+                                    <th>Urgency</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedback-table-body">
+                                <tr>
+                                    <td colspan="4" style="text-align:center; color:#999">No recent feedback</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Feedback-Project Alignment</div>
+                    <div class="panel-content" style="padding:0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Citizen Requests</th>
+                                    <th>Status</th>
+                                    <th>Alignment Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recommendations-table-body">
+                                <tr>
+                                    <td colspan="3" style="text-align:center; color:#999">No projects generated yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </aside>
 
-    </main>
+        </main>
+    </div>
 
-    <!-- FLOATING AI CHAT WIDGET -->
-    <div id="ai-chat-widget" class="chat-widget" role="dialog" aria-label="AI Assistant Chat" aria-hidden="true">
-        <div class="chat-header">
-            <h3>AI Assistant</h3>
-            <button id="close-chat-btn" aria-label="Close Chat">&times;</button>
+    <!-- AI CHAT WIDGET -->
+    <div id="ai-chat-widget" class="chat-widget" style="display:none; position:fixed; bottom:80px; right:20px; width:350px; border-radius:12px; z-index:100; flex-direction:column; overflow:hidden">
+        <div class="chat-header" style="padding:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; font-size:1rem">AI Assistant</h3>
+            <button id="close-chat-btn" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer">&times;</button>
         </div>
-        <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
-        <form id="chat-form" class="chat-form">
-            <input type="text" id="chat-input" placeholder="Ask about infrastructure..." aria-label="Chat Input" required minlength="2" maxlength="1000">
-            <button type="submit" id="chat-send-btn" class="btn btn-primary" aria-label="Send Message">Send</button>
+        <div id="chat-messages" style="height:300px; padding:1rem; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;"></div>
+        <form id="chat-form" style="display:flex; padding:1rem; border-top:1px solid var(--color-border-light);">
+            <input type="text" id="chat-input" placeholder="Ask a question..." style="flex:1; padding:0.5rem; border:1px solid var(--color-border-light); border-radius:4px 0 0 4px;" required>
+            <button type="submit" id="chat-send-btn" class="btn-primary" style="border-radius:0 4px 4px 0; padding:0.5rem 1rem;">Send</button>
         </form>
     </div>
     
-    <!-- Floating Action Button to open chat -->
-    <button id="open-chat-btn" class="chat-fab" aria-label="Open AI Assistant Chat" aria-expanded="false">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-        </svg>
+    <button id="open-chat-btn" style="position:fixed; bottom:20px; right:20px; width:50px; height:50px; border-radius:25px; background:var(--color-brand-blue); color:white; border:none; box-shadow:var(--shadow-md); cursor:pointer; z-index:99; display:flex; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
     </button>
 
     <script type="module" src="js/security.js"></script>

@@ -55,10 +55,20 @@ class Settings(BaseSettings):
         description="Google Gemini API key. Must be set via environment.",
     )
 
-    # ---- Gemini Configuration ----
     gemini_model: str = Field(
         default="gemini-2.5-flash",
         description="Gemini model identifier for high-speed reasoning.",
+    )
+
+    # ---- Supabase Configuration ----
+    supabase_url: str = Field(
+        default="",
+        description="Supabase project URL.",
+    )
+    
+    supabase_key: str = Field(
+        default="",
+        description="Supabase anonymous/publishable key.",
     )
 
     # ---- Server ----

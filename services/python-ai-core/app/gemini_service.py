@@ -23,6 +23,7 @@ import uuid
 from datetime import datetime, timezone
 
 from google import genai
+from supabase import create_client, Client
 
 from app.config import Settings
 from app.schemas import (
@@ -216,8 +217,14 @@ class GeminiService:
         """
         self.client = genai.Client(api_key=settings.gemini_api_key)
         self.model: str = settings.gemini_model
-        self.feedback_store: list[dict] = []
-        self.recommendation_store: list[ProjectRecommendation] = []
+        
+        if settings.supabase_url and settings.supabase_key:
+            self.supabase: Client = create_client(settings.supabase_url, settings.supabase_key)
+            self.use_supabase = True
+        else:
+            self.use_supabase = False
+            self.feedback_store: list[dict] = []
+            self.recommendation_store: list[ProjectRecommendation] = []
 
         logger.info(
             "GeminiService initialized with model: %s", self.model
@@ -261,15 +268,11 @@ class GeminiService:
             )
 
             # Store for later hotspot analysis
-            self.feedback_store.append({
+            feedback_record = {
                 "feedback_id": request.feedback_id,
                 "raw_text": request.raw_text,
                 "language": request.language,
                 "translated_text": result.translated_text,
-                "location_coords": {
-                    "lat": request.location_coords.lat,
-                    "lng": request.location_coords.lng,
-                },
                 "country_code": result.region_name
                     and request.country_code or request.country_code,
                 "region_name": result.region_name,
@@ -279,7 +282,17 @@ class GeminiService:
                 "urgency_score": result.urgency_score,
                 "keywords": result.keywords,
                 "created_at": datetime.now(timezone.utc).isoformat(),
-            })
+            }
+            if self.use_supabase:
+                feedback_record["lat"] = request.location_coords.lat
+                feedback_record["lng"] = request.location_coords.lng
+                self.supabase.table("citizen_feedback").insert(feedback_record).execute()
+            else:
+                feedback_record["location_coords"] = {
+                    "lat": request.location_coords.lat,
+                    "lng": request.location_coords.lng,
+                }
+                self.feedback_store.append(feedback_record)
 
             logger.info(
                 "Feedback %s processed: category=%s, urgency=%.1f, sentiment=%s",
@@ -320,7 +333,14 @@ class GeminiService:
             Tuple of (hotspot_clusters, total_feedback_analyzed).
         """
         # Apply filters
-        filtered = self.feedback_store.copy()
+        if self.use_supabase:
+            resp = self.supabase.table("citizen_feedback").select("*").execute()
+            filtered = []
+            for f in resp.data:
+                f["location_coords"] = {"lat": f["lat"], "lng": f["lng"]}
+                filtered.append(f)
+        else:
+            filtered = self.feedback_store.copy()
 
         if country_code:
             filtered = [
@@ -440,7 +460,28 @@ class GeminiService:
                 )
 
         # Update the global store
-        self.recommendation_store.extend(new_recommendations)
+        if self.use_supabase:
+            for rec in new_recommendations:
+                self.supabase.table("project_recommendations").insert({
+                    "recommendation_id": rec.recommendation_id,
+                    "title": rec.title,
+                    "category": rec.category.value,
+                    "priority_score": rec.priority_score,
+                    "priority_breakdown": rec.priority_breakdown.model_dump(),
+                    "budget_usd": rec.budget_estimate.amount_usd,
+                    "budget_local": rec.budget_estimate.amount_local,
+                    "local_currency": rec.budget_estimate.local_currency_code,
+                    "justification": rec.justification,
+                    "country_code": rec.location.country_code.value,
+                    "region_name": rec.location.region_name,
+                    "lat": rec.location.center_coords.lat,
+                    "lng": rec.location.center_coords.lng,
+                    "supporting_feedback_count": rec.supporting_feedback_count,
+                    "supporting_feedback_ids": rec.supporting_feedback_ids,
+                    "status": rec.status.value,
+                }).execute()
+        else:
+            self.recommendation_store.extend(new_recommendations)
 
         return new_recommendations
 
@@ -468,7 +509,51 @@ class GeminiService:
         Returns:
             Tuple of (paginated_recommendations, total_matching_count).
         """
-        filtered = self.recommendation_store.copy()
+        if self.use_supabase:
+            query = self.supabase.table("project_recommendations").select("*")
+            if country_code:
+                query = query.eq("country_code", country_code.upper())
+            if category:
+                query = query.eq("category", category)
+            query = query.gte("priority_score", min_priority)
+            
+            # Note: For hackathon MVP we will fetch all matching and sort in memory 
+            # (since parsing back to ProjectRecommendation object is required for the response)
+            resp = query.execute()
+            
+            filtered = []
+            for d in resp.data:
+                try:
+                    # Reconstruct ProjectRecommendation
+                    rec = ProjectRecommendation(
+                        recommendation_id=d["recommendation_id"],
+                        title=d["title"],
+                        category=InfrastructureCategory(d["category"]) if d["category"] in InfrastructureCategory._value2member_map_ else InfrastructureCategory.OTHER,
+                        priority_score=d["priority_score"],
+                        priority_breakdown=PriorityBreakdown(**d["priority_breakdown"]),
+                        budget_estimate=BudgetEstimate(
+                            amount_usd=d["budget_usd"],
+                            amount_local=d["budget_local"],
+                            local_currency_code=d["local_currency"],
+                            confidence=BudgetConfidence.MEDIUM,
+                        ),
+                        justification=d["justification"],
+                        location=RecommendationLocation(
+                            country_code=BRICSCountry(d["country_code"]) if d["country_code"] in BRICSCountry._value2member_map_ else BRICSCountry.IN,
+                            region_name=d["region_name"],
+                            center_coords=LocationCoords(lat=d["lat"], lng=d["lng"]),
+                        ),
+                        supporting_feedback_count=d["supporting_feedback_count"],
+                        supporting_feedback_ids=d["supporting_feedback_ids"],
+                        infrastructure_index_reference=InfrastructureIndexReference(index_name="Unknown", region_value=0.0, national_average=0.0, gap_percentage=0.0),
+                        sdg_alignment=[],
+                        status=RecommendationStatus(d["status"]) if d["status"] in RecommendationStatus._value2member_map_ else RecommendationStatus.PUBLISHED,
+                    )
+                    filtered.append(rec)
+                except Exception as e:
+                    logger.error(f"Failed to parse recommendation from DB: {e}")
+        else:
+            filtered = self.recommendation_store.copy()
 
         if country_code:
             filtered = [
@@ -664,14 +749,18 @@ Return ONLY this JSON (no markdown, no explanation):
         )
 
         # Gather supporting feedback IDs
-        supporting_ids = [
-            f["feedback_id"]
-            for f in self.feedback_store
-            if (
-                f.get("region_name") == region
-                and f.get("category") == category
-            )
-        ]
+        if self.use_supabase:
+            resp = self.supabase.table("citizen_feedback").select("feedback_id").eq("region_name", region).eq("category", category).execute()
+            supporting_ids = [f["feedback_id"] for f in resp.data]
+        else:
+            supporting_ids = [
+                f["feedback_id"]
+                for f in self.feedback_store
+                if (
+                    f.get("region_name") == region
+                    and f.get("category") == category
+                )
+            ]
 
         # Generate title and justification via Gemini
         prompt = f"""You are a public policy advisor for BRICS nations.
