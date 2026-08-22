@@ -232,7 +232,7 @@ async def health_check(request: Request) -> HealthResponse:
         "use_supabase": gemini_svc.use_supabase,
         "feedback_count": feedback_count,
         "recommendation_count": recommendation_count,
-        "uptime_seconds": int(time.time() - start_time),
+        "uptime_seconds": uptime,
     }
 
 
