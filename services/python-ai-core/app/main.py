@@ -41,7 +41,10 @@ from app.schemas import (
     InternalProcessRequest,
     InternalProcessResponse,
     Pagination,
+    ProjectRecommendation,
     RecommendationsResponseData,
+    ChatRequest,
+    ChatResponse,
 )
 
 # ==========================================================================
@@ -464,3 +467,24 @@ async def get_recommendations(
         "data": response_data.model_dump(mode="json"),
         "meta": _build_meta(request_id, processing_time).model_dump(mode="json"),
     }
+
+@app.post(
+    "/api/v1/ai/chat",
+    response_model=ChatResponse,
+    tags=["AI Analysis"],
+    summary="AI Assistant Chat Endpoint",
+)
+async def ai_chat(
+    request: Request,
+    body: ChatRequest,
+) -> dict:
+    gemini_svc: GeminiService = request.app.state.gemini_service
+    try:
+        reply = await gemini_svc.chat(body.prompt, body.language)
+        return {"reply": reply}
+    except Exception as exc:
+        logger.error(f"Chat failed: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "CHAT_FAILED", "message": str(exc)}
+        )

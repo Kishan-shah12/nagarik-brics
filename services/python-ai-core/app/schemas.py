@@ -290,6 +290,28 @@ class DateRange(BaseModel):
 AnalysisFilters.model_rebuild()
 
 
+class ChatRequest(BaseModel):
+    """Request payload for POST /api/v1/ai/chat.
+
+    Attributes:
+        prompt: User's chat message.
+        language: Language code.
+    """
+
+    prompt: str = Field(..., description="The user's chat message.")
+    language: str = Field(..., description="Language code (e.g., 'en', 'pt').")
+
+
+class ChatResponse(BaseModel):
+    """Response payload for POST /api/v1/ai/chat.
+
+    Attributes:
+        reply: AI generated reply.
+    """
+
+    reply: str = Field(..., description="The AI's response message.")
+
+
 class AnalyzeHotspotsRequest(BaseModel):
     """Request payload for POST /api/v1/ai/analyze-hotspots.
 
