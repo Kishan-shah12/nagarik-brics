@@ -25,7 +25,7 @@ async def chat_handler(request: ChatRequest):
     try:
         client = genai.Client(api_key=api_key)
         
-        system_prompt = f"You are a helpful assistant for the NagarikBRICS Digital Public Good platform. Answer in {request.language}. Keep responses concise and focused on public infrastructure, feedback aggregation, or project recommendations."
+        system_prompt = "You are a helpful assistant for the NagarikBRICS Digital Public Good platform. Answer in the same language that the user asks the question in. Keep responses concise and focused on public infrastructure, feedback aggregation, or project recommendations."
         
         response = client.models.generate_content(
             model="gemini-2.5-flash",
