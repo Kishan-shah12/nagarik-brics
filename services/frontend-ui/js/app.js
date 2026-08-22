@@ -208,21 +208,29 @@ const refreshAnalysis = async () => {
     refreshBtn.disabled = true;
 
     try {
-        const hsRes = await fetch(`${CONFIG.PYTHON_API_URL}/api/v1/analysis/hotspots?country_code=${country}`);
+        const hsRes = await fetch(`${CONFIG.PYTHON_API_URL}/api/v1/ai/analyze-hotspots`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filters: { country_code: country } })
+        });
         const hsData = await hsRes.json();
 
-        if (hsRes.ok) {
-            safeSetText(kpiTotal, hsData.total_analyzed.toString());
-            renderHotspots(hsData.hotspots || []);
-            logStatus(`Analysis complete: ${hsData.hotspots.length} hotspots identified.`);
+        if (hsRes.ok && hsData.data) {
+            safeSetText(kpiTotal, hsData.data.total_feedback_analyzed.toString());
+            renderHotspots(hsData.data.hotspots || []);
+            logStatus(`Analysis complete: ${hsData.data.hotspots.length} hotspots identified.`);
+        } else {
+            logStatus(`Hotspot Analysis failed.`, true);
         }
 
-        const recRes = await fetch(`${CONFIG.PYTHON_API_URL}/api/v1/recommendations?country_code=${country}`);
+        const recRes = await fetch(`${CONFIG.PYTHON_API_URL}/api/v1/ai/recommendations?country_code=${country}`);
         const recData = await recRes.json();
 
-        if (recRes.ok) {
-            safeSetText(kpiRecs, recData.total_count.toString());
-            renderRecommendations(recData.recommendations || []);
+        if (recRes.ok && recData.data) {
+            safeSetText(kpiRecs, recData.data.total_count.toString());
+            renderRecommendations(recData.data.recommendations || []);
+        } else {
+            logStatus(`Recommendations failed.`, true);
         }
 
         fetchAndRenderFeedback();
