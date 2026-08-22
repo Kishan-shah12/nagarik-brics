@@ -222,12 +222,15 @@ async def health_check(request: Request) -> HealthResponse:
     except Exception:
         gemini_status = "disconnected"
 
+    feedback_count = len(gemini_svc.feedback_store) if not gemini_svc.use_supabase else 0
+    recommendation_count = len(gemini_svc.recommendation_store) if not gemini_svc.use_supabase else 0
+
     return HealthResponse(
         status="healthy",
         version="1.0.0-mvp",
         gemini_api=gemini_status,
-        feedback_count=len(gemini_svc.feedback_store),
-        recommendation_count=len(gemini_svc.recommendation_store),
+        feedback_count=feedback_count,
+        recommendation_count=recommendation_count,
         uptime_seconds=uptime,
     )
 
