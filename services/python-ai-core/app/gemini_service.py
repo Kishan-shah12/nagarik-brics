@@ -255,7 +255,9 @@ class GeminiService:
                 raise exc
         
         # If all models failed with rate limits
-        raise last_exception
+        if last_exception is not None:
+            raise last_exception
+        raise RuntimeError("No fallback models were available to attempt generation.")
 
     async def process_feedback(
         self, request: InternalProcessRequest
@@ -557,7 +559,9 @@ class GeminiService:
                         title=d["title"],
                         category=InfrastructureCategory(d["category"]) if d["category"] in InfrastructureCategory._value2member_map_ else InfrastructureCategory.OTHER,
                         priority_score=d["priority_score"],
-                        priority_breakdown=PriorityBreakdown(**d["priority_breakdown"]),
+                        priority_breakdown=PriorityBreakdown.model_validate(
+                            json.loads(d["priority_breakdown"]) if isinstance(d.get("priority_breakdown"), str) else (d.get("priority_breakdown") or {})
+                        ),
                         budget_estimate=BudgetEstimate(
                             amount_usd=d["budget_usd"],
                             amount_local=d["budget_local"],
