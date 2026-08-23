@@ -13,6 +13,9 @@
 **The Problem:** 
 Fragmented citizen feedback systems across developing economies often lead to misaligned public infrastructure investments. Without a standardized, multilingual approach to aggregating ground-level reports, critical infrastructure gaps in water sanitation, transportation, and healthcare remain unaddressed, while public funds are deployed inefficiently.
 
+**The challenge:** 
+Build a scalable, multilingual AI platform — designed as a Digital Public Good — that aggregates citizen development requests via voice, text, and messaging apps across diverse linguistic regions. The system should analyse large datasets combining citizen feedback with national demographic data, infrastructure indices, and public investment plans, surfacing demand hotspots and recommending high-priority development projects to national policymakers across BRICS nations.
+
 **The Solution:** 
 **NagarikBRICS** is a multilingual, privacy-preserving AI orchestration platform designed as a Digital Public Good (DPG). By synthesizing unstructured citizen feedback (voice/text) against national demographic indices and infrastructure indicators, the platform generates prioritized, budget-estimated infrastructure project recommendations for policymakers. It leverages Google Gemini for high-speed, zero-local-model reasoning to instantly identify geographic demand hotspots.
 
