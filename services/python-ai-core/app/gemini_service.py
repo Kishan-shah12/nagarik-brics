@@ -230,6 +230,33 @@ class GeminiService:
             "GeminiService initialized with model: %s", self.model
         )
 
+
+    def _generate_with_fallback(self, **kwargs) -> "genai.types.GenerateContentResponse":
+        fallback_models = [
+            self.model,
+            "gemini-3.1-flash-lite",
+            "gemini-3.5-flash",
+            "gemini-2.5-flash-lite"
+        ]
+        
+        last_exception = None
+        for model in fallback_models:
+            try:
+                kwargs["model"] = model
+                logger.info("Attempting generation with model: %s", model)
+                return self.client.models.generate_content(**kwargs)
+            except Exception as exc:
+                last_exception = exc
+                err_msg = str(exc).lower()
+                if "429" in err_msg or "resource_exhausted" in err_msg or "quota" in err_msg:
+                    logger.warning("Rate limit hit for model %s, falling back to next model.", model)
+                    continue
+                # If it is not a rate limit error, raise it immediately
+                raise exc
+        
+        # If all models failed with rate limits
+        raise last_exception
+
     async def process_feedback(
         self, request: InternalProcessRequest
     ) -> InternalProcessResponse:
@@ -258,7 +285,7 @@ class GeminiService:
         )
 
         try:
-            response = self.client.models.generate_content(
+            response = self._generate_with_fallback(
                 model=self.model,
                 contents=prompt,
             )
@@ -782,7 +809,7 @@ Return ONLY this JSON (no markdown, no explanation):
   "budget_estimate_usd": 0
 }}"""
 
-        response = self.client.models.generate_content(
+        response = self._generate_with_fallback(
             model=self.model,
             contents=prompt,
         )
@@ -867,7 +894,7 @@ Return ONLY this JSON (no markdown, no explanation):
         logger.info(f"Processing chat prompt in {language}")
         try:
             sys_prompt = f"You are a helpful civic AI assistant for the NagarikBRICS platform. Reply in {language}."
-            response = self.client.models.generate_content(
+            response = self._generate_with_fallback(
                 model=self.model,
                 contents=f"{sys_prompt}\n\nUser: {prompt}",
             )
