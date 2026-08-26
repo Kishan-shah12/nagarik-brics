@@ -363,11 +363,16 @@ class GeminiService:
         """
         # Apply filters
         if self.use_supabase:
-            resp = self.supabase.table("citizen_feedback").select("*").execute()
-            filtered = []
-            for f in resp.data:
-                f["location_coords"] = {"lat": f["lat"], "lng": f["lng"]}
-                filtered.append(f)
+            try:
+                resp = self.supabase.table("citizen_feedback").select("*").execute()
+                filtered = []
+                for f in resp.data:
+                    f["location_coords"] = {"lat": f["lat"], "lng": f["lng"]}
+                    filtered.append(f)
+            except Exception as e:
+                logger.error(f"Supabase query failed in analyze_hotspots: {e}")
+                # Raise an exception that FastAPI will handle gracefully with CORS
+                raise RuntimeError(f"Database access error: {e}")
         else:
             filtered = self.feedback_store.copy()
 
@@ -548,7 +553,11 @@ class GeminiService:
             
             # Note: For hackathon MVP we will fetch all matching and sort in memory 
             # (since parsing back to ProjectRecommendation object is required for the response)
-            resp = query.execute()
+            try:
+                resp = query.execute()
+            except Exception as e:
+                logger.error(f"Supabase query failed in get_recommendations: {e}")
+                raise RuntimeError(f"Database access error: {e}")
             
             filtered = []
             for d in resp.data:
