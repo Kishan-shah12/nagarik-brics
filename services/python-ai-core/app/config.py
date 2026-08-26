@@ -69,8 +69,8 @@ class Settings(BaseSettings):
     
     supabase_key: str = Field(
         default="",
-        validation_alias=AliasChoices("SUPABASE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
-        description="Supabase anonymous/publishable key.",
+        validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+        description="Supabase service role or publishable key.",
     )
 
     # ---- Server ----
