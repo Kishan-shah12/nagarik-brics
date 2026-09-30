@@ -12,9 +12,9 @@ NagarikBRICS platform.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -474,30 +474,22 @@ class ProjectRecommendation(BaseModel):
     infrastructure_index_reference: Optional[InfrastructureIndexReference] = None
     sdg_alignment: list[str] = Field(default_factory=list)
     status: RecommendationStatus = RecommendationStatus.PUBLISHED
-    created_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("supporting_feedback_ids", mode="before")
     @classmethod
-    def validate_feedback_ids(cls, v: list[str]) -> list[str]:
-        """Validate that each feedback ID matches UUID v4 format.
-
-        Args:
-            v: List of feedback ID strings.
-
-        Returns:
-            Validated list of UUID strings.
-
-        Raises:
-            ValueError: If any ID does not match UUID format.
-        """
-        for fid in v:
+    def validate_feedback_ids(cls, v: Any) -> list[str]:
+        """Validate feedback IDs into a list of clean strings."""
+        if not v:
+            return []
+        if isinstance(v, str):
             try:
-                uuid.UUID(fid, version=4)
-            except ValueError:
-                raise ValueError(
-                    f"Invalid feedback ID format: '{fid}'. Must be UUID v4."
-                )
-        return v
+                v = json.loads(v)
+            except Exception:
+                v = [v]
+        if not isinstance(v, list):
+            return []
+        return [str(fid).strip() for fid in v if str(fid).strip()]
 
 
 class Pagination(BaseModel):
@@ -560,7 +552,7 @@ class ApiResponse(BaseModel):
     """
 
     status: str = Field(..., pattern=r"^(success|error)$")
-    data: Optional[dict | list | BaseModel] = None
+    data: Optional[Any] = None
     error: Optional[dict] = None
     meta: ApiMeta
 

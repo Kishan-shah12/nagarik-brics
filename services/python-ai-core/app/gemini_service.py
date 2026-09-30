@@ -476,12 +476,16 @@ class GeminiService:
         """
         new_recommendations: list[ProjectRecommendation] = []
 
-        # 1. Retrieve all existing recommendations to find which feedback IDs already have a recommendation
+        # 1. Retrieve all existing recommendations to find which feedback IDs / clusters already have a recommendation
         existing_recs, _ = self.get_recommendations(page_size=1000)
         recommended_feedback_ids: set[str] = set()
+        recommended_clusters: set[tuple[str, str, str]] = set()
         for r in existing_recs:
             if r.supporting_feedback_ids:
                 recommended_feedback_ids.update(r.supporting_feedback_ids)
+            recommended_clusters.add(
+                (r.location.country_code.value, r.location.region_name, r.category.value)
+            )
 
         # 2. Retrieve all citizen feedback records
         all_feedbacks: list[dict] = []
@@ -497,10 +501,19 @@ class GeminiService:
             all_feedbacks = self.feedback_store.copy()
 
         # 3. Identify citizen feedbacks that do NOT have a recommendation yet
-        unrecommended_feedbacks = [
-            fb for fb in all_feedbacks
-            if fb.get("feedback_id") and fb.get("feedback_id") not in recommended_feedback_ids
-        ]
+        unrecommended_feedbacks = []
+        for fb in all_feedbacks:
+            fid = fb.get("feedback_id")
+            if not fid:
+                continue
+            if fid in recommended_feedback_ids:
+                continue
+            cc = str(fb.get("country_code") or "IN").upper()
+            reg = str(fb.get("region_name") or "Unknown")
+            cat = str(fb.get("category") or "other")
+            if (cc, reg, cat) in recommended_clusters:
+                continue
+            unrecommended_feedbacks.append(fb)
 
         # If every citizen feedback already has a recommendation, do not generate duplicates on refresh!
         if not unrecommended_feedbacks:
@@ -540,7 +553,7 @@ class GeminiService:
                     self.recommendation_store.extend(new_recommendations)
                 return new_recommendations
 
-            logger.info("All citizen feedback records already have a project recommendation. Skipping generation on refresh.")
+            logger.info("All citizen feedback records already have an aligned project recommendation. Skipping generation on refresh.")
             return []
 
         # 4. Generate exactly one project recommendation for each unrecommended citizen feedback
@@ -549,6 +562,9 @@ class GeminiService:
                 rec = await self._generate_recommendation_for_feedback(fb)
                 new_recommendations.append(rec)
                 recommended_feedback_ids.add(fb.get("feedback_id"))
+                recommended_clusters.add(
+                    (rec.location.country_code.value, rec.location.region_name, rec.category.value)
+                )
             except Exception as exc:
                 logger.error(
                     "Failed to generate recommendation for feedback %s: %s",
@@ -641,6 +657,13 @@ class GeminiService:
                     else:
                         parsed_sf_ids = []
 
+                    created_at_val = datetime.now(timezone.utc)
+                    if d.get("created_at"):
+                        try:
+                            created_at_val = datetime.fromisoformat(str(d["created_at"]).replace("Z", "+00:00"))
+                        except Exception:
+                            pass
+
                     rec = ProjectRecommendation(
                         recommendation_id=d["recommendation_id"],
                         title=d["title"],
@@ -666,6 +689,7 @@ class GeminiService:
                         infrastructure_index_reference=InfrastructureIndexReference(index_name="Unknown", region_value=0.0, national_average=0.0, gap_percentage=0.0),
                         sdg_alignment=[],
                         status=RecommendationStatus(d["status"]) if d["status"] in RecommendationStatus._value2member_map_ else RecommendationStatus.PUBLISHED,
+                        created_at=created_at_val,
                     )
                     raw_recs.append(rec)
                 except Exception as e:
@@ -681,15 +705,17 @@ class GeminiService:
 
         for r in raw_recs:
             is_dup = False
+            # 1. Deduplicate by supporting feedback IDs
             if r.supporting_feedback_ids:
                 for fid in r.supporting_feedback_ids:
                     if fid in seen_feedback_ids:
                         is_dup = True
                         break
-            else:
-                key = (r.location.country_code.value, r.location.region_name, r.category.value, r.title)
-                if key in seen_keys:
-                    is_dup = True
+
+            # 2. Also deduplicate by country + region + category (independent of varying AI titles)
+            cluster_key = (r.location.country_code.value, r.location.region_name, r.category.value)
+            if not is_dup and cluster_key in seen_keys:
+                is_dup = True
 
             if is_dup:
                 duplicate_rec_ids.append(r.recommendation_id)
@@ -697,8 +723,7 @@ class GeminiService:
                 unique_recs.append(r)
                 if r.supporting_feedback_ids:
                     seen_feedback_ids.update(r.supporting_feedback_ids)
-                key = (r.location.country_code.value, r.location.region_name, r.category.value, r.title)
-                seen_keys.add(key)
+                seen_keys.add(cluster_key)
 
         # Cleanup duplicate records in Supabase database or in-memory store
         if duplicate_rec_ids:
