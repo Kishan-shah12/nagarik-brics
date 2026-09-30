@@ -8,9 +8,9 @@ These schemas mirror the JSON contracts defined in SCHEMA.md and
 api-docs.md, ensuring type-safe serialization across the entire
 NagarikBRICS platform.
 """
-
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
