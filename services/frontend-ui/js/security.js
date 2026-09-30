@@ -84,7 +84,7 @@ export const safeSetHTML = (element, html) => {
 /**
  * Application Constants (Frozen to prevent tampering)
  */
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isLocal = typeof window !== 'undefined' ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') : true;
 
 export const CONFIG = deepFreeze({
     JAVA_API_URL: isLocal ? '/api/v1/feedback' : 'https://nagarik-java-ingestion.onrender.com/api/v1/feedback',

@@ -147,7 +147,20 @@ const renderRecommendations = (recs) => {
         return;
     }
 
+    // Ensure 1 citizen feedback has 1 project recommendation
+    const seen = new Set();
+    const uniqueRecs = [];
     recs.forEach(rec => {
+        const key = (rec.supporting_feedback_ids && rec.supporting_feedback_ids.length > 0)
+            ? rec.supporting_feedback_ids[0]
+            : (rec.recommendation_id || rec.title);
+        if (!seen.has(key)) {
+            seen.add(key);
+            uniqueRecs.push(rec);
+        }
+    });
+
+    uniqueRecs.forEach(rec => {
         const title = sanitizeHTML(rec.title);
         const status = sanitizeHTML(rec.status);
         const score = rec.priority_score.toFixed(1);
@@ -230,9 +243,22 @@ const refreshAnalysis = async () => {
         const recData = await recRes.json();
 
         if (recRes.ok && recData.data) {
-            const totalRecs = recData.data.pagination ? recData.data.pagination.total_items : (recData.data.total_count || 0);
-            safeSetText(kpiRecs, totalRecs.toString());
-            renderRecommendations(recData.data.recommendations || []);
+            const rawRecs = recData.data.recommendations || [];
+            // Deduplicate to guarantee 1 citizen feedback has 1 project recommendation
+            const seen = new Set();
+            const uniqueRecs = [];
+            rawRecs.forEach(rec => {
+                const key = (rec.supporting_feedback_ids && rec.supporting_feedback_ids.length > 0)
+                    ? rec.supporting_feedback_ids[0]
+                    : (rec.recommendation_id || rec.title);
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueRecs.push(rec);
+                }
+            });
+
+            safeSetText(kpiRecs, uniqueRecs.length.toString());
+            renderRecommendations(uniqueRecs);
         } else {
             logStatus(`Recommendations failed.`, true);
         }

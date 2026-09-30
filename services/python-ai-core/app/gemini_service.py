@@ -460,60 +460,126 @@ class GeminiService:
 
     async def generate_recommendations(
         self,
-        hotspots: list[HotspotCluster],
+        hotspots: list[HotspotCluster] | None = None,
     ) -> list[ProjectRecommendation]:
-        """Generate infrastructure project recommendations from hotspots.
+        """Generate infrastructure project recommendations for citizen feedback.
 
-        For each critical or high-intensity hotspot, uses Gemini to generate
-        a project recommendation with title, justification, and budget
-        estimate. Cross-references with mock infrastructure indices.
+        Ensures a 1-to-1 relationship between citizen feedback and project
+        recommendations: exactly one project recommendation per citizen feedback.
+        Prevents adding duplicate recommendations on site refresh.
 
         Args:
-            hotspots: List of identified hotspot clusters.
+            hotspots: Optional list of identified hotspot clusters.
 
         Returns:
             List of generated project recommendations.
         """
         new_recommendations: list[ProjectRecommendation] = []
 
-        # Only generate for high/critical hotspots
-        actionable = [
-            h for h in hotspots
-            if h.intensity in (HotspotIntensity.CRITICAL, HotspotIntensity.HIGH)
+        # 1. Retrieve all existing recommendations to find which feedback IDs already have a recommendation
+        existing_recs, _ = self.get_recommendations(page_size=1000)
+        recommended_feedback_ids: set[str] = set()
+        for r in existing_recs:
+            if r.supporting_feedback_ids:
+                recommended_feedback_ids.update(r.supporting_feedback_ids)
+
+        # 2. Retrieve all citizen feedback records
+        all_feedbacks: list[dict] = []
+        if self.use_supabase:
+            try:
+                resp = self.supabase.table("citizen_feedback").select("*").execute()
+                for f in (resp.data or []):
+                    f["location_coords"] = {"lat": f.get("lat", 26.8467), "lng": f.get("lng", 80.9462)}
+                    all_feedbacks.append(f)
+            except Exception as e:
+                logger.error(f"Supabase query failed in generate_recommendations: {e}")
+        else:
+            all_feedbacks = self.feedback_store.copy()
+
+        # 3. Identify citizen feedbacks that do NOT have a recommendation yet
+        unrecommended_feedbacks = [
+            fb for fb in all_feedbacks
+            if fb.get("feedback_id") and fb.get("feedback_id") not in recommended_feedback_ids
         ]
 
-        for hotspot in actionable:
+        # If every citizen feedback already has a recommendation, do not generate duplicates on refresh!
+        if not unrecommended_feedbacks:
+            # If there are no raw feedbacks stored but synthetic actionable hotspots were passed with no existing recs
+            if hotspots and not existing_recs:
+                actionable = [
+                    h for h in hotspots
+                    if h.intensity in (HotspotIntensity.CRITICAL, HotspotIntensity.HIGH)
+                ]
+                for hotspot in actionable:
+                    try:
+                        rec = await self._generate_single_recommendation(hotspot)
+                        new_recommendations.append(rec)
+                    except Exception as exc:
+                        logger.error("Failed to generate recommendation for %s: %s", hotspot.cluster_id, str(exc))
+                if self.use_supabase:
+                    for rec in new_recommendations:
+                        self.supabase.table("project_recommendations").insert({
+                            "recommendation_id": rec.recommendation_id,
+                            "title": rec.title,
+                            "category": rec.category.value,
+                            "priority_score": rec.priority_score,
+                            "priority_breakdown": rec.priority_breakdown.model_dump(),
+                            "budget_usd": rec.budget_estimate.amount_usd,
+                            "budget_local": rec.budget_estimate.amount_local,
+                            "local_currency": rec.budget_estimate.local_currency_code,
+                            "justification": rec.justification,
+                            "country_code": rec.location.country_code.value,
+                            "region_name": rec.location.region_name,
+                            "lat": rec.location.center_coords.lat,
+                            "lng": rec.location.center_coords.lng,
+                            "supporting_feedback_count": rec.supporting_feedback_count,
+                            "supporting_feedback_ids": rec.supporting_feedback_ids,
+                            "status": rec.status.value,
+                        }).execute()
+                else:
+                    self.recommendation_store.extend(new_recommendations)
+                return new_recommendations
+
+            logger.info("All citizen feedback records already have a project recommendation. Skipping generation on refresh.")
+            return []
+
+        # 4. Generate exactly one project recommendation for each unrecommended citizen feedback
+        for fb in unrecommended_feedbacks:
             try:
-                rec = await self._generate_single_recommendation(hotspot)
+                rec = await self._generate_recommendation_for_feedback(fb)
                 new_recommendations.append(rec)
+                recommended_feedback_ids.add(fb.get("feedback_id"))
             except Exception as exc:
                 logger.error(
-                    "Failed to generate recommendation for %s: %s",
-                    hotspot.cluster_id,
+                    "Failed to generate recommendation for feedback %s: %s",
+                    fb.get("feedback_id"),
                     str(exc),
                 )
 
-        # Update the global store
+        # 5. Persist the new recommendations
         if self.use_supabase:
             for rec in new_recommendations:
-                self.supabase.table("project_recommendations").insert({
-                    "recommendation_id": rec.recommendation_id,
-                    "title": rec.title,
-                    "category": rec.category.value,
-                    "priority_score": rec.priority_score,
-                    "priority_breakdown": rec.priority_breakdown.model_dump(),
-                    "budget_usd": rec.budget_estimate.amount_usd,
-                    "budget_local": rec.budget_estimate.amount_local,
-                    "local_currency": rec.budget_estimate.local_currency_code,
-                    "justification": rec.justification,
-                    "country_code": rec.location.country_code.value,
-                    "region_name": rec.location.region_name,
-                    "lat": rec.location.center_coords.lat,
-                    "lng": rec.location.center_coords.lng,
-                    "supporting_feedback_count": rec.supporting_feedback_count,
-                    "supporting_feedback_ids": rec.supporting_feedback_ids,
-                    "status": rec.status.value,
-                }).execute()
+                try:
+                    self.supabase.table("project_recommendations").insert({
+                        "recommendation_id": rec.recommendation_id,
+                        "title": rec.title,
+                        "category": rec.category.value,
+                        "priority_score": rec.priority_score,
+                        "priority_breakdown": rec.priority_breakdown.model_dump(),
+                        "budget_usd": rec.budget_estimate.amount_usd,
+                        "budget_local": rec.budget_estimate.amount_local,
+                        "local_currency": rec.budget_estimate.local_currency_code,
+                        "justification": rec.justification,
+                        "country_code": rec.location.country_code.value,
+                        "region_name": rec.location.region_name,
+                        "lat": rec.location.center_coords.lat,
+                        "lng": rec.location.center_coords.lng,
+                        "supporting_feedback_count": rec.supporting_feedback_count,
+                        "supporting_feedback_ids": rec.supporting_feedback_ids,
+                        "status": rec.status.value,
+                    }).execute()
+                except Exception as exc:
+                    logger.error(f"Failed to insert recommendation into Supabase: {exc}")
         else:
             self.recommendation_store.extend(new_recommendations)
 
@@ -529,7 +595,10 @@ class GeminiService:
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[ProjectRecommendation], int]:
-        """Retrieve stored recommendations with filtering and pagination.
+        """Retrieve stored recommendations with deduplication, filtering and pagination.
+
+        Ensures each citizen feedback has at most one project recommendation.
+        Removes any duplicate recommendations from previous runs.
 
         Args:
             country_code: Optional BRICS country filter.
@@ -543,6 +612,7 @@ class GeminiService:
         Returns:
             Tuple of (paginated_recommendations, total_matching_count).
         """
+        raw_recs: list[ProjectRecommendation] = []
         if self.use_supabase:
             query = self.supabase.table("project_recommendations").select("*")
             if country_code:
@@ -550,19 +620,27 @@ class GeminiService:
             if category:
                 query = query.eq("category", category)
             query = query.gte("priority_score", min_priority)
-            
-            # Note: For hackathon MVP we will fetch all matching and sort in memory 
-            # (since parsing back to ProjectRecommendation object is required for the response)
+
             try:
                 resp = query.execute()
             except Exception as e:
                 logger.error(f"Supabase query failed in get_recommendations: {e}")
                 raise RuntimeError(f"Database access error: {e}")
-            
-            filtered = []
+
             for d in resp.data:
                 try:
-                    # Reconstruct ProjectRecommendation
+                    raw_sf_ids = d.get("supporting_feedback_ids")
+                    if isinstance(raw_sf_ids, list):
+                        parsed_sf_ids = [str(x) for x in raw_sf_ids]
+                    elif isinstance(raw_sf_ids, str):
+                        try:
+                            decoded = json.loads(raw_sf_ids)
+                            parsed_sf_ids = [str(x) for x in decoded] if isinstance(decoded, list) else [raw_sf_ids]
+                        except Exception:
+                            parsed_sf_ids = [raw_sf_ids] if raw_sf_ids else []
+                    else:
+                        parsed_sf_ids = []
+
                     rec = ProjectRecommendation(
                         recommendation_id=d["recommendation_id"],
                         title=d["title"],
@@ -583,17 +661,57 @@ class GeminiService:
                             region_name=d["region_name"],
                             center_coords=LocationCoords(lat=d["lat"], lng=d["lng"]),
                         ),
-                        supporting_feedback_count=d["supporting_feedback_count"],
-                        supporting_feedback_ids=d["supporting_feedback_ids"],
+                        supporting_feedback_count=d.get("supporting_feedback_count", 1),
+                        supporting_feedback_ids=parsed_sf_ids,
                         infrastructure_index_reference=InfrastructureIndexReference(index_name="Unknown", region_value=0.0, national_average=0.0, gap_percentage=0.0),
                         sdg_alignment=[],
                         status=RecommendationStatus(d["status"]) if d["status"] in RecommendationStatus._value2member_map_ else RecommendationStatus.PUBLISHED,
                     )
-                    filtered.append(rec)
+                    raw_recs.append(rec)
                 except Exception as e:
                     logger.error(f"Failed to parse recommendation from DB: {e}")
         else:
-            filtered = self.recommendation_store.copy()
+            raw_recs = self.recommendation_store.copy()
+
+        # Deduplicate recommendations so each citizen feedback has exactly one recommendation
+        seen_feedback_ids: set[str] = set()
+        seen_keys: set[tuple] = set()
+        unique_recs: list[ProjectRecommendation] = []
+        duplicate_rec_ids: list[str] = []
+
+        for r in raw_recs:
+            is_dup = False
+            if r.supporting_feedback_ids:
+                for fid in r.supporting_feedback_ids:
+                    if fid in seen_feedback_ids:
+                        is_dup = True
+                        break
+            else:
+                key = (r.location.country_code.value, r.location.region_name, r.category.value, r.title)
+                if key in seen_keys:
+                    is_dup = True
+
+            if is_dup:
+                duplicate_rec_ids.append(r.recommendation_id)
+            else:
+                unique_recs.append(r)
+                if r.supporting_feedback_ids:
+                    seen_feedback_ids.update(r.supporting_feedback_ids)
+                key = (r.location.country_code.value, r.location.region_name, r.category.value, r.title)
+                seen_keys.add(key)
+
+        # Cleanup duplicate records in Supabase database or in-memory store
+        if duplicate_rec_ids:
+            if self.use_supabase:
+                try:
+                    self.supabase.table("project_recommendations").delete().in_("recommendation_id", duplicate_rec_ids).execute()
+                    logger.info(f"Cleaned up {len(duplicate_rec_ids)} duplicate recommendations from Supabase database.")
+                except Exception as e:
+                    logger.warning(f"Failed to clean up duplicate recommendations from Supabase: {e}")
+            else:
+                self.recommendation_store = [r for r in self.recommendation_store if r.recommendation_id not in duplicate_rec_ids]
+
+        filtered = unique_recs
 
         if country_code:
             filtered = [
@@ -743,6 +861,152 @@ Return ONLY this JSON (no markdown, no explanation):
             urgency_score=urgency_score,
             keywords=keywords,
             region_name=data.get("region_name", "Unknown"),
+        )
+
+    async def _generate_recommendation_for_feedback(
+        self,
+        feedback: dict,
+    ) -> ProjectRecommendation:
+        """Generate an infrastructure project recommendation for a single citizen feedback record.
+
+        Ensures a 1-to-1 relationship between citizen feedback and project recommendations.
+
+        Args:
+            feedback: Stored citizen feedback dictionary.
+
+        Returns:
+            Fully populated ProjectRecommendation tied to this citizen feedback.
+        """
+        fb_id = str(feedback.get("feedback_id") or uuid.uuid4())
+        country = feedback.get("country_code") or "IN"
+        if country not in BRICSCountry._value2member_map_:
+            country = "IN"
+        region = feedback.get("region_name") or "Unknown"
+        category = feedback.get("category") or "other"
+        if category not in InfrastructureCategory._value2member_map_:
+            category = "other"
+
+        urgency_score = float(feedback.get("urgency_score", 5.0))
+        sentiment_score = float(feedback.get("sentiment_score", 0.0))
+        feedback_text = feedback.get("raw_text") or feedback.get("translated_text", "")
+
+        lat = feedback.get("lat")
+        lng = feedback.get("lng")
+        if lat is None or lng is None:
+            coords = feedback.get("location_coords") or {}
+            lat = coords.get("lat", 26.8467)
+            lng = coords.get("lng", 80.9462)
+
+        # Look up infrastructure index
+        index_name = CATEGORY_INDEX_MAP.get(category, "HDI")
+        region_indices = INFRASTRUCTURE_INDICES.get(country, {}).get(region, {})
+        national_avgs = NATIONAL_AVERAGES.get(country, {})
+
+        region_value = region_indices.get(index_name, 50.0)
+        national_avg = national_avgs.get(index_name, 60.0)
+        gap_pct = round(
+            ((national_avg - region_value) / national_avg) * 100, 2
+        ) if national_avg > 0 else 0.0
+
+        # Compute priority breakdown
+        urgency_component = min(40.0, (urgency_score / 10.0) * 40.0)
+        volume_component = 15.0  # Baseline weight for a validated citizen feedback
+        gap_component = min(25.0, max(0.0, (gap_pct / 40.0) * 25.0))
+        sentiment_component = min(10.0, abs(sentiment_score) * 10.0)
+        total_priority = round(
+            urgency_component + volume_component + gap_component + sentiment_component,
+            1,
+        )
+
+        prompt = f"""You are a public policy advisor for BRICS nations.
+Generate a project recommendation aligned with this citizen feedback request.
+
+CITIZEN FEEDBACK:
+- Country: {country}
+- Region: {region}
+- Category: {category.replace('_', ' ').title()}
+- Citizen Report: "{feedback_text}"
+- Urgency: {urgency_score}/10
+- Sentiment: {sentiment_score} (-1 to +1)
+- Infrastructure Index ({index_name}): Region={region_value}, National Avg={national_avg}, Gap={gap_pct}%
+
+Return ONLY this JSON (no markdown, no explanation):
+{{
+  "title": "A concise project title addressing this citizen request (max 200 chars)",
+  "justification": "A detailed 100-300 word justification addressing this citizen issue and referencing infrastructure indices",
+  "budget_estimate_usd": 150000
+}}"""
+
+        try:
+            response = self._generate_with_fallback(
+                model=self.model,
+                contents=prompt,
+            )
+            cleaned = response.text.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+                cleaned = re.sub(r"\s*```$", "", cleaned)
+            rec_data = json.loads(cleaned.strip())
+        except Exception as e:
+            logger.warning(f"Gemini fallback for feedback recommendation {fb_id}: {e}")
+            rec_data = {
+                "title": f"{category.replace('_', ' ').title()} Project — {region}",
+                "justification": (
+                    f"Direct response to citizen feedback ({feedback_text[:100]}...) from {region}, "
+                    f"{country} with an urgency score of {urgency_score}/10. "
+                    f"The region's {index_name} score of {region_value} indicates an infrastructure gap. "
+                    f"Implementation is prioritized to resolve this citizen concern."
+                ),
+                "budget_estimate_usd": 120000,
+            }
+
+        budget_usd = max(0, float(rec_data.get("budget_estimate_usd", 120000)))
+        currency = COUNTRY_CURRENCY.get(country, "USD")
+        fx_rates = {"INR": 83.5, "BRL": 5.1, "ZAR": 18.5, "RUB": 92.0, "CNY": 7.2}
+        local_amount = round(budget_usd * fx_rates.get(currency, 1.0))
+
+        justification_text = rec_data.get("justification", "")
+        if len(justification_text) < 50:
+            justification_text = (
+                f"Direct response to citizen feedback from {region}, {country} "
+                f"with urgency {urgency_score}/10. Targeted infrastructure intervention to resolve "
+                f"the reported issue and improve local community quality of life."
+            )
+
+        return ProjectRecommendation(
+            recommendation_id=str(uuid.uuid4()),
+            title=str(rec_data.get("title", f"{category.replace('_', ' ').title()} — {region}"))[:200],
+            category=InfrastructureCategory(category) if category in InfrastructureCategory._value2member_map_ else InfrastructureCategory.OTHER,
+            priority_score=total_priority,
+            priority_breakdown=PriorityBreakdown(
+                citizen_urgency_component=round(urgency_component, 1),
+                feedback_volume_component=round(volume_component, 1),
+                infrastructure_gap_component=round(gap_component, 1),
+                sentiment_severity_component=round(sentiment_component, 1),
+            ),
+            budget_estimate=BudgetEstimate(
+                amount_usd=budget_usd,
+                amount_local=local_amount,
+                local_currency_code=currency,
+                confidence=BudgetConfidence.MEDIUM,
+            ),
+            justification=justification_text,
+            location=RecommendationLocation(
+                country_code=BRICSCountry(country),
+                region_name=region,
+                center_coords=LocationCoords(lat=lat, lng=lng),
+            ),
+            supporting_feedback_count=1,
+            supporting_feedback_ids=[fb_id],
+            infrastructure_index_reference=InfrastructureIndexReference(
+                index_name=index_name,
+                region_value=region_value,
+                national_average=national_avg,
+                gap_percentage=gap_pct,
+            ),
+            sdg_alignment=CATEGORY_SDG_MAP.get(category, []),
+            status=RecommendationStatus.PUBLISHED,
+            created_at=datetime.now(timezone.utc),
         )
 
     async def _generate_single_recommendation(
