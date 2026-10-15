@@ -18,9 +18,14 @@
 
     <!-- TOP NAV -->
     <header class="top-bar">
-        <div class="brand">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--color-brand-blue)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-            CIVIC CONNECT: <span>Citizen Feedback & Infrastructure Intelligence Dashboard</span>
+        <div class="top-bar-left">
+            <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+            </button>
+            <div class="brand">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--color-brand-blue)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                <span class="brand-title">CIVIC CONNECT:</span> <span class="brand-subtitle">Citizen Feedback & Infrastructure Intelligence Dashboard</span>
+            </div>
         </div>
         <div class="top-bar-right">
             <div class="user-profile">
@@ -40,28 +45,62 @@
         </div>
     </header>
 
+    <!-- MOBILE QUICK TAB BAR -->
+    <nav class="mobile-tab-bar" id="mobile-tab-bar" aria-label="Mobile Dashboard Navigation">
+        <button class="mobile-tab-btn active" data-target="panel-kpis">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            <span>Dashboard</span>
+        </button>
+        <button class="mobile-tab-btn" data-target="panel-feedback">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            <span>Feedback</span>
+        </button>
+        <button class="mobile-tab-btn" data-target="panel-projects">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+            <span>Projects</span>
+        </button>
+        <button class="mobile-tab-btn" data-target="panel-map">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+            <span>Demographics</span>
+        </button>
+        <button class="mobile-tab-btn" data-target="panel-simulator">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            <span>Simulator</span>
+        </button>
+    </nav>
+
+    <!-- MOBILE SIDEBAR BACKDROP -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
     <div class="app-container">
         
         <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <a href="#" class="nav-item active">
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-header-mobile">
+                <div class="sidebar-brand-mobile">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--color-brand-blue)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <span>Navigation</span>
+                </div>
+                <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <a href="#" class="nav-item active" data-target="panel-kpis">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
                 Dashboard
             </a>
-            <a href="#" class="nav-item">
+            <a href="#" class="nav-item" data-target="panel-feedback">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M21 2H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h4l3 3 3-3h6c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 16H3V4h18v14z"/></svg>
                 Feedback & Needs
             </a>
-            <a href="#" class="nav-item">
+            <a href="#" class="nav-item" data-target="panel-projects">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
                 Infrastructure Projects
             </a>
-            <a href="#" class="nav-item">
+            <a href="#" class="nav-item" data-target="panel-map">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
                 Demographics & Analytics
             </a>
             
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" id="panel-simulator">
                 <p><strong>Citizen Simulator</strong></p>
                 <form id="feedback-form" class="sim-form" style="margin-top: 10px;">
                     <textarea id="feedback-text" rows="2" placeholder="Simulate feedback..."></textarea>
@@ -79,7 +118,7 @@
         <main class="dashboard-content">
             
             <!-- KPI ROW -->
-            <div class="kpi-row">
+            <div class="kpi-row" id="panel-kpis">
                 <div class="kpi-card">
                     <div class="kpi-title">Total Citizen Requests</div>
                     <div class="kpi-value" id="kpi-total">0</div>
@@ -102,7 +141,7 @@
 
             <!-- MIDDLE ROW (MAP) -->
             <div class="middle-row">
-                <div class="panel">
+                <div class="panel" id="panel-needs">
                     <div class="panel-header">Top Infrastructure Needs</div>
                     <div class="panel-content" style="display:flex; flex-direction:column; justify-content:flex-end; gap:0.5rem; border-bottom:1px solid #eee; padding-bottom:10px;">
                         <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
@@ -112,7 +151,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="panel">
+                <div class="panel" id="panel-map">
                     <div class="panel-header">
                         <span>AI-Generated Demographic Insights Overlay</span>
                         <button id="refresh-analysis-btn" class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">Refresh Analysis</button>
@@ -130,43 +169,47 @@
 
             <!-- BOTTOM ROW -->
             <div class="bottom-row">
-                <div class="panel">
+                <div class="panel" id="panel-feedback">
                     <div class="panel-header">Recent Citizen Feedback Feed</div>
                     <div class="panel-content" style="padding:0">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Source</th>
-                                    <th>Message</th>
-                                    <th>Tag</th>
-                                    <th>Urgency</th>
-                                </tr>
-                            </thead>
-                            <tbody id="feedback-table-body">
-                                <tr>
-                                    <td colspan="4" style="text-align:center; color:#999">No recent feedback</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Source</th>
+                                        <th>Message</th>
+                                        <th>Tag</th>
+                                        <th>Urgency</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="feedback-table-body">
+                                    <tr>
+                                        <td colspan="4" style="text-align:center; color:#999">No recent feedback</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                <div class="panel">
+                <div class="panel" id="panel-projects">
                     <div class="panel-header">Feedback-Project Alignment</div>
                     <div class="panel-content" style="padding:0">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Citizen Requests</th>
-                                    <th>Status</th>
-                                    <th>Alignment Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recommendations-table-body">
-                                <tr>
-                                    <td colspan="3" style="text-align:center; color:#999">No projects generated yet.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Citizen Requests</th>
+                                        <th>Status</th>
+                                        <th>Alignment Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recommendations-table-body">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center; color:#999">No projects generated yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

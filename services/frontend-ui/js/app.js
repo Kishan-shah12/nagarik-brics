@@ -347,16 +347,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ============================================================================
-// Sidebar Navigation (UI Placeholder)
+// Responsive Navigation & Mobile Drawer
 // ============================================================================
-document.querySelectorAll(".sidebar .nav-item").forEach(item => {
-    item.addEventListener("click", (e) => {
-        e.preventDefault();
-        document.querySelectorAll(".sidebar .nav-item").forEach(nav => nav.classList.remove("active"));
-        item.classList.add("active");
-        
-        if (!item.textContent.includes("Dashboard")) {
-            alert(item.textContent.trim() + " is under development and will be available in the next release!");
+const sidebar = document.getElementById('app-sidebar');
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+const dashboardContent = document.querySelector('.dashboard-content');
+
+const openSidebar = () => {
+    if (sidebar) sidebar.classList.add('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+};
+
+const closeSidebar = () => {
+    if (sidebar) sidebar.classList.remove('open');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+    document.body.style.overflow = '';
+};
+
+if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', openSidebar);
+}
+if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', closeSidebar);
+}
+if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', closeSidebar);
+}
+
+const navigateToSection = (targetId) => {
+    document.querySelectorAll('.sidebar .nav-item, .mobile-tab-btn').forEach(el => {
+        if (el.getAttribute('data-target') === targetId) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
         }
     });
+
+    if (targetId === 'panel-simulator') {
+        const simInput = document.getElementById('feedback-text');
+        if (window.innerWidth <= 900) {
+            openSidebar();
+            if (simInput) {
+                setTimeout(() => simInput.focus(), 300);
+            }
+        } else if (simInput) {
+            simInput.focus();
+        }
+        return;
+    }
+
+    closeSidebar();
+
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+        if (targetId === 'panel-kpis') {
+            if (window.innerWidth <= 900) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (dashboardContent) {
+                dashboardContent.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        } else {
+            if (window.innerWidth <= 900) {
+                const headerOffset = 115;
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            } else if (dashboardContent) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }
+};
+
+document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = item.getAttribute('data-target') || 'panel-kpis';
+        navigateToSection(target);
+    });
 });
+
+document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = btn.getAttribute('data-target') || 'panel-kpis';
+        navigateToSection(target);
+    });
+});
+
